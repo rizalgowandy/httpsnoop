@@ -52,7 +52,7 @@ func (m *Metrics) CaptureMetrics(w http.ResponseWriter, fn func(http.ResponseWri
 				return func(code int) {
 					next(code)
 
-					if !headerWritten {
+					if !(code >= 100 && code <= 199) && !headerWritten {
 						m.Code = code
 						headerWritten = true
 					}
@@ -83,4 +83,18 @@ func (m *Metrics) CaptureMetrics(w http.ResponseWriter, fn func(http.ResponseWri
 
 	fn(Wrap(w, hooks))
 	m.Duration += time.Since(start)
+}
+
+// deadliner defines two methods introduced in go 1.20. The standard library
+// seems not to provide an interface we can import, hence its definition here.
+type deadliner interface {
+	SetReadDeadline(deadline time.Time) error
+	SetWriteDeadline(deadline time.Time) error
+}
+
+// fullDuplexEnabler defines a method introduced in go 1.21. The standard
+// library seems not to provide an interface we can import, hence its definition
+// here.
+type fullDuplexEnabler interface {
+	EnableFullDuplex() error
 }
